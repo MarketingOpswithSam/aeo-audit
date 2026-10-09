@@ -1,0 +1,15 @@
+{
+  "name": "aeo-audit",
+  "version": "1.0.0",
+  "description": "Audit a live page for SEO and answer-engine basics. Zero dependencies.",
+  "type": "module",
+  "bin": { "aeo-audit": "audit.mjs" },
+  "scripts": { "test": "node --test" },
+  "engines": { "node": ">=18" },
+  "keywords": ["seo","aeo","audit","json-ld","llms-txt"],
+  "license": "MIT",
+  "author": "Marketing Ops with Sam (https://marketingopswithsam.com)",
+  "homepage": "https://github.com/MarketingOpswithSam/aeo-audit#readme",
+  "repository": { "type": "git", "url": "git+https://github.com/MarketingOpswithSam/aeo-audit.git" },
+  "bugs": { "url": "https://github.com/MarketingOpswithSam/aeo-audit/issues" }
+}

@@ -6,6 +6,14 @@ I built it because the same handful of problems kept shipping on pages that look
 
 ## Run it
 
+No install needed:
+
+```bash
+npx github:MarketingOpswithSam/aeo-audit https://yoursite.com/blog/some-post
+```
+
+Or clone it:
+
 ```bash
 git clone https://github.com/MarketingOpswithSam/aeo-audit.git
 cd aeo-audit
