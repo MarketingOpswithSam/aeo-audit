@@ -42,6 +42,10 @@ Each check comes back `PASS`, `info`, `warn` or `FAIL`. Only `FAIL` makes the sc
 - **FAQ schema is info.** Google no longer shows FAQ rich results. The markup is harmless.
 - **Meta descriptions:** Google has no fixed limit, but long ones get cut off. The check warns above 160 characters.
 
+## Read more
+
+[Should you block GPTBot? Which AI crawlers to allow and which to block](https://marketingopswithsam.com/blog/block-gptbot-or-allow-ai-crawlers) explains the search-bot and training-bot split this tool reports on.
+
 ## Limits
 
 It reads the HTML the server returns. Content added by JavaScript after load will not be seen, and it does not replace Search Console or a full crawler. Treat it as a fast pre-publish gate.
