@@ -29,7 +29,7 @@ Needs Node 18 or newer. Pass several URLs to audit them in one go. Add `--json` 
 | Basics | title length, meta description length, exactly one H1, canonical, not set to noindex |
 | Sharing | og:title, og:description, og:image |
 | Structured data | JSON-LD parses, which schema types are present, FAQPage on article pages |
-| Content | image alt text, word count |
+| Content | images with no alt attribute (empty alt is accepted as decorative), word count |
 | Site files | robots.txt, whether GPTBot / ClaudeBot / PerplexityBot / Google-Extended / OAI-SearchBot are blocked, sitemap listed, llms.txt |
 
 Each check comes back `PASS`, `warn` or `FAIL`. The script exits with code 1 if anything fails, so you can run it in CI or a publish checklist and stop a bad page before it goes live.

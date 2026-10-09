@@ -1,6 +1,6 @@
 {
   "name": "aeo-audit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Audit a live page for SEO and answer-engine basics. Zero dependencies.",
   "type": "module",
   "bin": { "aeo-audit": "audit.mjs" },

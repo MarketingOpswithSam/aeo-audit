@@ -21,7 +21,11 @@ const get = async (u) => {
   }
 };
 
-const tag = (html, re) => (html.match(re) || [])[1]?.trim() ?? '';
+const decode = (s) =>
+  s.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (_, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }[e]));
+const tag = (html, re) => decode((html.match(re) || [])[1]?.trim() ?? '');
 const meta = (html, attr, name) =>
   tag(html, new RegExp(`<meta[^>]+${attr}=["']${name}["'][^>]*content=["']([^"']*)["']`, 'i')) ||
   tag(html, new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*${attr}=["']${name}["']`, 'i'));
@@ -86,9 +90,11 @@ async function audit(url) {
   const isArticle = ['Article', 'BlogPosting', 'NewsArticle'].some((t) => types.has(t));
   if (isArticle) add(types.has('FAQPage') ? 'pass' : 'warn', 'FAQPage schema', 'answer engines lift FAQ blocks');
 
+  // An empty alt (alt="" or a bare `alt`) is valid: it marks a decorative image.
   const imgs = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
-  const noAlt = imgs.filter((i) => !/\balt=/i.test(i)).length;
-  add(noAlt ? 'warn' : 'pass', 'image alt text', `${noAlt} of ${imgs.length} images missing alt`);
+  const noAlt = imgs.filter((i) => !/\salt(\s|=|\/|>)/i.test(i)).length;
+  const emptyAlt = imgs.filter((i) => /\salt(\s*=\s*(""|'')|\s|\/|>)/i.test(i) && !/\salt\s*=\s*["'][^"']+["']/i.test(i)).length;
+  add(noAlt ? 'warn' : 'pass', 'image alt attribute', `${noAlt} of ${imgs.length} images have no alt attribute (${emptyAlt} marked decorative with empty alt)`);
 
   const text = html.replace(/<(script|style)[\s\S]*?<\/\1>/gi, '').replace(/<[^>]+>/g, ' ');
   const words = text.split(/\s+/).filter(Boolean).length;
