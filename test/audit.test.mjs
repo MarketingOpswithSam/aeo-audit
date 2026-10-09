@@ -36,3 +36,21 @@ test('decodes entities and treats empty alt as decorative', async () => {
   assert.match(out, /title length - 28 chars/); // "&amp;" counts as one character, not five
   assert.match(out, /1 of 4 images have no alt attribute \(2 marked decorative/);
 });
+
+test('separates AI search bots from training bots and treats llms.txt as optional', async () => {
+  const ROBOTS = 'User-agent: GPTBot\nDisallow: /\n\nUser-agent: OAI-SearchBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n';
+  const srv = createServer((req, res) => {
+    if (req.url === '/') { res.setHeader('content-type', 'text/html'); res.end(PAGE); }
+    else if (req.url === '/robots.txt') { res.setHeader('content-type', 'text/plain'); res.end(ROBOTS); }
+    else { res.statusCode = 404; res.end(); }
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const out = await new Promise((resolve) => {
+    const p = spawn('node', ['audit.mjs', `http://127.0.0.1:${srv.address().port}/`]); let o = '';
+    p.stdout.on('data', (d) => (o += d)); p.on('close', () => resolve(o));
+  });
+  srv.close();
+  assert.match(out, /warn\s+AI search bots allowed - blocked: OAI-SearchBot/);
+  assert.match(out, /info\s+AI training bots - blocked: GPTBot/);
+  assert.match(out, /info\s+llms\.txt - not present/);
+});

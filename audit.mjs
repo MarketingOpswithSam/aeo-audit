@@ -67,7 +67,8 @@ async function audit(url) {
 
   const desc = meta(html, 'name', 'description');
   if (!desc) add('fail', 'meta description', 'missing');
-  else if (desc.length < 70 || desc.length > 160) add('warn', 'meta description length', `${desc.length} chars (aim for 70 to 160)`);
+  else if (desc.length > 160) add('warn', 'meta description length', `${desc.length} chars (Google has no hard limit, but long ones get cut off in results; about 160 is safe)`);
+  else if (desc.length < 70) add('info', 'meta description length', `${desc.length} chars (short, consider saying more)`);
   else add('pass', 'meta description', `${desc.length} chars`);
 
   const h1s = (html.match(/<h1[\s>]/gi) || []).length;
@@ -88,7 +89,7 @@ async function audit(url) {
   if (types.has('__invalid_json_ld__')) add('fail', 'JSON-LD parses', 'a block is not valid JSON');
   add(types.size ? 'pass' : 'warn', 'structured data', [...types].filter((t) => t !== '__invalid_json_ld__').join(', ') || 'none');
   const isArticle = ['Article', 'BlogPosting', 'NewsArticle'].some((t) => types.has(t));
-  if (isArticle) add(types.has('FAQPage') ? 'pass' : 'warn', 'FAQPage schema', 'answer engines lift FAQ blocks');
+  if (isArticle) add('info', 'FAQPage schema', types.has('FAQPage') ? 'present (Google no longer shows FAQ rich results, but the markup is harmless)' : 'not present (optional: Google no longer shows FAQ rich results)');
 
   // An empty alt (alt="" or a bare `alt`) is valid: it marks a decorative image.
   const imgs = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
@@ -104,13 +105,27 @@ async function audit(url) {
   const robots = await get(origin + '/robots.txt');
   add(robots.status === 200 ? 'pass' : 'warn', 'robots.txt', `HTTP ${robots.status}`);
   if (robots.status === 200) {
-    const blocked = ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended', 'OAI-SearchBot']
-      .filter((b) => new RegExp(`user-agent:\\s*${b}[\\s\\S]*?disallow:\\s*/\\s*($|\\n)`, 'i').test(robots.text));
-    add(blocked.length ? 'warn' : 'pass', 'AI crawlers allowed', blocked.length ? `blocked: ${blocked.join(', ')}` : 'none blocked');
+    // A bot is blocked when its group (or the * group, if it has none) disallows /.
+    const groups = [];
+    for (const block of robots.text.split(/\n\s*\n/)) {
+      const agents = [...block.matchAll(/^\s*user-agent:\s*(\S+)/gim)].map((m) => m[1].toLowerCase());
+      const rules = [...block.matchAll(/^\s*(allow|disallow):\s*(\S*)/gim)].map((m) => [m[1].toLowerCase(), m[2]]);
+      if (agents.length) groups.push({ agents, rules });
+    }
+    const blockedFor = (bot) => {
+      const g = groups.find((x) => x.agents.includes(bot.toLowerCase())) || groups.find((x) => x.agents.includes('*'));
+      if (!g) return false;
+      const allowAll = g.rules.some(([k, v]) => k === 'allow' && v === '/');
+      return !allowAll && g.rules.some(([k, v]) => k === 'disallow' && v === '/');
+    };
+    const searchBlocked = ['OAI-SearchBot', 'Claude-SearchBot', 'PerplexityBot'].filter(blockedFor);
+    add(searchBlocked.length ? 'warn' : 'pass', 'AI search bots allowed', searchBlocked.length ? `blocked: ${searchBlocked.join(', ')} (you will not appear in those answers)` : 'OAI-SearchBot, Claude-SearchBot, PerplexityBot not blocked');
+    const trainBlocked = ['GPTBot', 'ClaudeBot', 'Google-Extended'].filter(blockedFor);
+    add('info', 'AI training bots', trainBlocked.length ? `blocked: ${trainBlocked.join(', ')} (a valid choice: opts out of model training, not search answers)` : 'not blocked');
     add(/sitemap:/i.test(robots.text) ? 'pass' : 'warn', 'sitemap listed in robots.txt');
   }
   const llms = await get(origin + '/llms.txt');
-  add(llms.status === 200 ? 'pass' : 'warn', 'llms.txt', `HTTP ${llms.status}`);
+  add(llms.status === 200 ? 'pass' : 'info', 'llms.txt', llms.status === 200 ? 'present' : 'not present (optional: Google says sites do not need it)');
   return results;
 }
 
@@ -121,11 +136,11 @@ for (const url of urls) {
   all[url] = res;
   failed += res.filter((r) => r.level === 'fail').length;
   if (asJson) continue;
-  const icon = { pass: 'PASS', warn: 'warn', fail: 'FAIL' };
+  const icon = { pass: 'PASS', info: 'info', warn: 'warn', fail: 'FAIL' };
   console.log(`\n${url}`);
   for (const r of res) console.log(`  ${icon[r.level]}  ${r.check}${r.detail ? ' - ' + r.detail : ''}`);
   const c = (l) => res.filter((r) => r.level === l).length;
-  console.log(`  => ${c('pass')} pass, ${c('warn')} warn, ${c('fail')} fail`);
+  console.log(`  => ${c('pass')} pass, ${c('info')} info, ${c('warn')} warn, ${c('fail')} fail`);
 }
 if (asJson) console.log(JSON.stringify(all, null, 2));
 process.exit(failed ? 1 : 0);

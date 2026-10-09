@@ -28,15 +28,19 @@ Needs Node 18 or newer. Pass several URLs to audit them in one go. Add `--json` 
 | --- | --- |
 | Basics | title length, meta description length, exactly one H1, canonical, not set to noindex |
 | Sharing | og:title, og:description, og:image |
-| Structured data | JSON-LD parses, which schema types are present, FAQPage on article pages |
+| Structured data | JSON-LD parses, which schema types are present, FAQPage noted on article pages |
 | Content | images with no alt attribute (empty alt is accepted as decorative), word count |
-| Site files | robots.txt, whether GPTBot / ClaudeBot / PerplexityBot / Google-Extended / OAI-SearchBot are blocked, sitemap listed, llms.txt |
+| Site files | robots.txt, whether AI **search** bots (OAI-SearchBot, Claude-SearchBot, PerplexityBot) are blocked, whether AI **training** bots (GPTBot, ClaudeBot, Google-Extended) are blocked, sitemap listed, llms.txt |
 
-Each check comes back `PASS`, `warn` or `FAIL`. The script exits with code 1 if anything fails, so you can run it in CI or a publish checklist and stop a bad page before it goes live.
+Each check comes back `PASS`, `info`, `warn` or `FAIL`. Only `FAIL` makes the script exit with code 1, so you can run it in CI or a publish checklist and stop a bad page before it goes live.
 
-## Why the AI-crawler and llms.txt checks
+## What counts as a problem, and what doesn't
 
-More buyers now get their first answer from ChatGPT, Perplexity, Copilot or Google's AI results. If your robots.txt blocks those crawlers, or your best pages have no FAQ markup, you are invisible to them. These checks are cheap to run and expensive to miss.
+- **Blocking AI search bots is a warning.** If OAI-SearchBot, Claude-SearchBot or PerplexityBot are disallowed, you will not be shown in those products' answers.
+- **Blocking AI training bots is only info.** GPTBot, ClaudeBot and Google-Extended relate to model training. Blocking them is a legitimate choice and does not remove you from search answers.
+- **llms.txt is optional.** Google says sites do not need it and no major AI system is confirmed to use it, so a missing file is `info`, not a warning.
+- **FAQ schema is info.** Google no longer shows FAQ rich results. The markup is harmless.
+- **Meta descriptions:** Google has no fixed limit, but long ones get cut off. The check warns above 160 characters.
 
 ## Limits
 
